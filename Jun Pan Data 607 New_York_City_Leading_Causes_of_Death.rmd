@@ -1,0 +1,58 @@
+---
+title: "Jun Pan 607 Project 2 dataset 1"
+author: "Jun Pan"
+date: "October 5, 2018"
+output: html_document
+---
+
+New York City Leading Causes of Death 
+from https://data.cityofnewyork.us/Health/New-York-City-Leading-Causes-of-Death/jb7j-dtam
+down load csv file to local computer for data analysis
+
+set environment
+```{r}
+library(dplyr)
+library(knitr)
+library(DT)
+options(dplyr.width = Inf)
+```
+read database
+
+```{r}
+setwd("C:/Users/tbao/Desktop/CUNY MSDS notes/607/week 6/project 2/New York City Leading cause of Death")
+getwd()
+df <- read.csv("C:/Users/tbao/Desktop/CUNY MSDS notes/607/week 6/project 2/New York City Leading cause of Death/New_York_City_Leading_Causes_of_Death.csv", header=TRUE, sep=",")
+datatable(df)
+```
+leading causes of death each year for men and women.
+```{r}
+df_death <- df %>% subset(select = c(Sex,Year,Cause.of.Death,Count)) %>% 
+  group_by(Sex,Year) %>%
+  filter(Count == max(Count)) %>% distinct(Sex,Year,Cause.of.Death,Count)
+head(df_death)
+```
+
+
+Display the leading causes of death each year for each ethnic group.
+```{r}
+df_death_eth <- df %>% subset(select = c(Ethnicity,Year,Cause.of.Death,Count)) %>% 
+  group_by(Ethnicity,Year) %>%
+  filter(Count == max(Count)) %>% distinct(Ethnicity,Year,Cause.of.Death,Count)
+
+head(df_death_eth)
+```
+Calculate which cause of death has reduced the most and which has increased the most in the years given
+```{r}
+df_death_trends <- df %>% subset(select = c(Year,Cause.of.Death,Count)) %>%
+  group_by(Year, Cause.of.Death, the_min = min(Count), the_max = max(Count), the_diff = (the_max - the_min)) %>% count(Year, Cause.of.Death, max(the_diff))
+
+datatable(df_death_trends)
+```
+Calculate which cause of death has remained stable over the years given.
+```{r}
+df_death_stable <- df %>% subset(select = c(Year,Cause.of.Death,Count)) %>%
+  group_by(Year, Cause.of.Death, the_min = min(Count), the_max = max(Count), the_diff = (the_max - the_min)) %>% count(Year, Cause.of.Death, min(the_diff))
+
+datatable(df_death_stable)
+```
+

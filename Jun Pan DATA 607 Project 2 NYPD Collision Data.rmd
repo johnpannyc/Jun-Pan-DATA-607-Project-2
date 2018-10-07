@@ -1,0 +1,74 @@
+---
+title: "Jun Pan Data 607 Project 2 NYC data.rmd"
+author: "Jun Pan"
+date: "October 7, 2018"
+output: html_document
+---
+
+
+NYPD Motor Vehicle Collisions Data were downloaded from the following website
+http://www1.nyc.gov/site/nypd/stats/traffic-data/traffic-data-collision.page
+Data were saved in csv file and merged by columns
+
+Set enviornment
+```{r}
+library(tidyr)
+library(dplyr)
+library(knitr)
+library(ggplot2)
+library(readr)
+```
+
+read csv file
+
+```{r}
+Collision <- tbl_df(read.csv("C:/Users/tbao/Desktop/CUNY MSDS notes/607/week 6/project 2/NY PD data/NYPD_Motor_Vehicle_Collisions.csv", stringsAsFactors = FALSE, check.names = FALSE))
+```
+
+```{r}
+head(Collision)
+```
+```{r}
+tail(Collision)
+```
+
+
+Tidy data 
+```{r}
+
+injury_type <- Collision %>% gather(Injury_type, Freq, 4:15)
+
+```
+
+```{r}
+head(injury_type)
+```
+
+```{r}
+dim(injury_type)
+```
+```{r}
+tail(injury_type)
+```
+
+ 
+Data Analysis
+most frequent injury type
+```{r}
+injury_type_freq_most <- injury_type %>% group_by(Injury_type) %>% arrange(-Freq) %>% filter(row_number()==1)
+injury_type_freq_most
+```
+Above table the frequency of injury by injury_type in descending order
+
+least frequent injury type
+```{r}
+injury_type_freq_least <- injury_type %>% group_by(Injury_type) %>% arrange(Freq) %>% filter(row_number()==1)
+injury_type_freq_least
+```
+Data visulization
+```{r}
+e<-ggplot(injury_type, aes(Injury_type, Freq)) + geom_point(aes(col=Injury_type, size=Freq)) 
+e
+```
+
+

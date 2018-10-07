@@ -1,0 +1,178 @@
+---
+title: "Jun Pan DATA 607 Project 2 3rd database"
+author: "Jun Pan"
+date: "October 6, 2018"
+output: html_document
+---
+
+United Nations Development Program sets "Zero Hunger" as one of their sustainable development goals (SDGs). The prevalence of undernourishment (% of population) under code SN.ITK.DEFC.ZS are evaluated in the database.  
+
+Database source: https://datacatalog.worldbank.org/dataset/sustainable-development-goals
+
+Set environment
+```{r}
+library(dplyr)
+library(tidyr)
+library(knitr)
+library(ggplot2)
+library(stringr)
+```
+```{r}
+read.csv("C:/Users/tbao/Desktop/CUNY MSDS notes/607/week 6/project 2/World Bank/SDGData.csv")
+```
+It shows that the database has 91524 rows and 33 columns
+
+```{r}
+sdgdata = read.table("C:/Users/tbao/Desktop/CUNY MSDS notes/607/week 6/project 2/World Bank/SDGData.csv", header=TRUE, sep=",", na.strings = c("", "NA"))
+sdgdata$X <- NULL
+```
+```{r}
+head(sdgdata)
+```
+```{r}
+tail(sdgdata)
+```
+
+change the names of the columns
+```{r}
+names(sdgdata)[1] <- "country_name"
+names(sdgdata)[2] <- "country_code"
+names(sdgdata)[3] <- "indicator_name"
+names(sdgdata)[4] <- "indicator_code"
+```
+
+```{r}
+head(sdgdata)
+```
+
+Check how many countries in the database
+```{r}
+sdgdata %>% dplyr::select(country_name) %>% dplyr::n_distinct()
+```
+list names of all 263 countires
+```{r}
+countries <- unlist(sdgdata %>% dplyr::select(country_name) %>% dplyr::distinct())
+names(countries) <- NULL
+rownames(countries) <- c()
+kable(countries, format="markdown")
+```
+
+
+Create a subset for indicator  Prevalence of undernourishment (% of population) under code SN.ITK.DEFC.ZS
+For the years before 2000 and after 2015, we do not have the data.  So we are going to exclude those columnes inour subset of database.  
+
+```{r}
+sdg_subset <- sdgdata %>% dplyr::filter(sdgdata$indicator_code == "SN.ITK.DEFC.ZS")
+head(sdg_subset)
+sdg_subset$X1990 <- NULL
+sdg_subset$X1991 <- NULL
+sdg_subset$X1992 <- NULL
+sdg_subset$X1993 <- NULL
+sdg_subset$X1994 <- NULL
+sdg_subset$X1995 <- NULL
+sdg_subset$X1996 <- NULL
+sdg_subset$X1997 <- NULL
+sdg_subset$X1998 <- NULL
+sdg_subset$X1999 <- NULL
+sdg_subset$X2016 <- NULL
+sdg_subset$X2017 <- NULL
+
+head(sdg_subset)
+```
+```{r}
+dim(sdg_subset)
+```
+keep only Completed cases in subset
+```{r}
+sdg_subset <- sdg_subset[complete.cases(sdg_subset), ]
+```
+
+```{r}
+dim(sdg_subset)
+```
+Tidy subset:(1)drop indicator_name and indicator_code columes; (2)combine the columes from X2000 to X2015 to a new columes with the name of "year"
+```{r}
+sdg_subset_transform1 <- tidyr::gather(sdg_subset, "year", "undernourishment_SN.ITK.DEFC.ZS", 5:20)
+
+sdg_subset_transform1$indicator_code <- NULL
+sdg_subset_transform1$indicator_name <- NULL
+
+head(sdg_subset_transform1)
+```
+
+
+
+Calculate the mean for all countries for each year from 2000 to 2015.
+```{r}
+sdg_meanPerYear <-
+  sdg_subset_transform1 %>% 
+  dplyr::group_by(year) %>% 
+  dplyr::summarise(mean = mean(undernourishment_SN.ITK.DEFC.ZS))
+
+for (i in 1:nrow(sdg_meanPerYear)) {
+  sdg_meanPerYear[i,1] <- stringr::str_extract(sdg_meanPerYear[i,1], "[0-9]{4,4}")
+}
+
+print(sdg_meanPerYear)
+```
+
+Calculate the mean prevalence of undernourishment for each country from year 2000 to 2015.
+```{r}
+sdg_meanPerCountry <-
+  sdg_subset_transform1 %>% 
+    dplyr::group_by(country_name) %>%  
+    dplyr::summarise(country_mean = mean(undernourishment_SN.ITK.DEFC.ZS))
+
+names(sdg_meanPerCountry)[1] <- "country_name"
+
+for (i in 1:nrow(sdg_meanPerYear)) {
+  sdg_meanPerYear[i,1] <- stringr::str_extract(sdg_meanPerYear[i,1], "[0-9]{4,4}")
+}
+
+print(sdg_meanPerCountry)
+```
+Calculate the mean prevalence of undernourishment of 214 countries (yr 2000 to yr 2015)
+
+```{r}
+sdg_meanPerCountry
+```
+Summary statistics for the mean prevalence of all countries
+```{r}
+unlist(sdg_meanPerCountry %>% dplyr::summarise(mean=mean(country_mean), 
+                                median=median(country_mean),
+                                IQR = IQR(country_mean),
+                                sd = sd(country_mean),
+                                min = min(country_mean),
+                                max = max(country_mean)))
+```
+
+mean prevelance of undernourishment per country
+
+```{r}
+barfill <- "#FF6666"
+barlines <- "#1F3552"
+
+e <- ggplot(sdg_meanPerCountry, aes(x = country_mean)) +
+        geom_histogram(aes(y = ..count..), binwidth = 1,
+                       colour = barlines, fill = barfill) +
+        scale_x_continuous(name = "Mean prevalence of undernourishment from year 2000 to 2015",
+                           breaks = seq(0, 50, 5),
+                           limits=c(0, 60)) +
+        scale_y_continuous(name = "Count") +
+        ggtitle("Mean Prevalence of Undernourishment Per Country")
+e
+```
+mean prevalence of undernourishment from year 2000 to 2015
+```{r}
+sdg_meanPerYear
+```
+
+```{r}
+f <- ggplot() + geom_bar(aes(y = mean, x = year, fill = "#1F3552"), data = sdg_meanPerYear, stat = "identity") + guides(fill=FALSE)
+f
+```
+Rank countries of prevelance of undernourishment in descending order
+```{r}
+sdg_meanPerCountry %>% dplyr::arrange(desc(country_mean))
+```
+
